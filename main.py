@@ -1,3 +1,9 @@
+# TODO
+# finish shortest path implementation (line 126)
+# mst button and implementation
+# zoom implementation
+# selection and multiple node dragging implementation
+
 import pygame
 import random 
 from pygame.locals import *
@@ -35,7 +41,10 @@ obj_list = []
 #x = Node(1,2,20,50)
 #obj_list.append(x)
 
+# BUTTONS
 distance_button = Button((10,490),100, 35, "Distance")
+shortest_path_button = Button((120, 490), 100, 35, "Shortest Path")
+
 distance_results = []
 distance_done = False
 
@@ -43,8 +52,15 @@ drawing = False
 dragging = False
 moved = False
 connecting = False
-distance = False
 dragging_index = 0
+
+distance = False
+
+shortest_path_start = False
+shortest_path_end = False
+
+selection = None
+
 
 editing = False
 editing_information = (0,0)
@@ -52,7 +68,11 @@ current_value = ""
 
 # POPUPS
 DEFAULT_POPUP_RECT = pygame.Rect(100,10,420,40)
+
 distance_popup = Popup("Select the starting node", DEFAULT_POPUP_RECT)
+
+shortest_path_start_popup = Popup("Select the starting node", DEFAULT_POPUP_RECT)
+shortest_path_end_popup = Popup("Select the ending node", DEFAULT_POPUP_RECT)
 
 while True:
     screen.fill(black)
@@ -69,23 +89,52 @@ while True:
                             
                             distance = False
                             distance_popup.hide()
+                        else:
+                            for ob in obj_list:
+                                if ob.is_inside(mouse_x, mouse_y):
+                                    distance_done = True
+                                    distance = False
+                                    distance_results = [float("inf")]*len(obj_list)
+                                    ob.select(True)
 
+                                    compute_distance(ob, distance_results, obj_list)
+                                    distance_popup.hide()
+                                    break
+                    elif shortest_path_start:
+                        if shortest_path_button.is_inside(event.pos):
+                            shortest_path_start = False
+                            shortest_path_start_popup.hide()
+                        else:
+                            for ob in obj_list:
+                                if ob.is_inside(mouse_x, mouse_y):
+                                    shortest_path_start = False
+                                    shortest_path_end = True
+                                    selection = obj_list.index(ob)
+                                    ob.select(True)
+                                    shortest_path_start = False
+                                    shortest_path_start_popup.hide()
+                                    shortest_path_end.show()
+                                    break
 
-                        for ob in obj_list:
-                            if ob.is_inside(mouse_x, mouse_y):
-                                distance_done = True
-                                distance = False
-                                distance_results = [float("inf")]*len(obj_list)
-                                ob.select(True)
-
-                                compute_distance(ob, distance_results, obj_list)
-                                distance_popup.hide()
-                                break
+                    elif shortest_path_end:
+                        if shortest_path_button.is_inside(event.pos):
+                            shortest_path_end = False
+                            shortest_path_end_popup.hide()
+                        else:
+                            for ob in obj_list:
+                                if ob.is_inside(mouse_x, mouse_y):
+                                    # TODO:
+                                    # computer distance and then compute the path between 'selection' and ob
+                                    # somehow highlight this path
+                                    pass
                     else:
                         if distance_button.is_inside(event.pos):
-                            
                             distance = True
                             distance_popup.show()
+                        elif shortest_path_button.is_inside(event.pos):
+                            shortest_path_start = True
+                            shortest_path_end = False
+                            shortest_path_start_popup.show()
                         else:
                             i = 0
                             if connecting:
@@ -247,8 +296,9 @@ while True:
         if distance_done:
             ob.render_text(screen, distance_results[obj_list.index(ob)])
 
-    
+    # BUTTON RENDER
     distance_button.render(screen, pygame.mouse.get_pos(), distance)
+    shortest_path_button.render(screen, pygame.mouse.get_pos(), shortest_path_start^shortest_path_end)
 
     if connecting:
         pygame.draw.line(screen, white, (starting_x, starting_y), pygame.mouse.get_pos())
@@ -256,9 +306,13 @@ while True:
 
     # POPUP UPDATE
     distance_popup.update()
+    shortest_path_start_popup.update()
+    shortest_path_end_popup.update()
 
     # POPUP RENDER
     distance_popup.render(screen)
+    shortest_path_start_popup.render(screen)
+    shortest_path_end_popup.render(screen)
 
     pygame.display.update()
     
