@@ -9,7 +9,7 @@ class Node():
         self.arc_radius = 12
         self.arcs = []
         pygame.font.init()
-        self.myfont = pygame.font.SysFont('Comic Sans MS', 20)
+        self.myfont = pygame.font.SysFont('Arial', 20)
         self.selected = False
 
     def add_arc(self, dest_obj, weight, displayed):

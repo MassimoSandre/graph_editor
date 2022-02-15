@@ -3,9 +3,10 @@ import random
 from pygame.locals import *
 from node import Node
 from button import Button
+from popup import Popup
 
 
-def shortest_path(starting_node, results, graph):
+def compute_distance(starting_node, results, graph):
 
     queue = [(starting_node, 0)]
 
@@ -17,13 +18,6 @@ def shortest_path(starting_node, results, graph):
                 if distance + n[1] < results[graph.index(n[0])]:
                     queue.append((n[0], distance + n[1]))
             
-
-
-    # if results[graph.index(starting_node)] > dist:
-    #     results[graph.index(starting_node)] = dist
-    #     for n in starting_node.arcs:
-    #         shortest_path(n[0], results, graph, dist+1)
-
 
 CIRCLE_RADIUS = 15
 
@@ -41,20 +35,24 @@ obj_list = []
 #x = Node(1,2,20,50)
 #obj_list.append(x)
 
-dfs_button = Button((10,490),150, 35, "Shortest path")
-dfs_results = []
-dfs_done = False
+distance_button = Button((10,490),100, 35, "Distance")
+distance_results = []
+distance_done = False
 
 drawing = False
 dragging = False
 moved = False
 connecting = False
-dfs = False
+distance = False
 dragging_index = 0
 
 editing = False
 editing_information = (0,0)
 current_value = ""
+
+# POPUPS
+DEFAULT_POPUP_RECT = pygame.Rect(100,10,420,40)
+distance_popup = Popup("Select the starting node", DEFAULT_POPUP_RECT)
 
 while True:
     screen.fill(black)
@@ -66,21 +64,28 @@ while True:
                     # left click
                     mouse_x, mouse_y = event.pos
                     
-                    if dfs:
+                    if distance:
+                        if distance_button.is_inside(event.pos):
+                            
+                            distance = False
+                            distance_popup.hide()
+
+
                         for ob in obj_list:
                             if ob.is_inside(mouse_x, mouse_y):
-                                dfs_done = True
-                                dfs = False
-                                dfs_results = [float("inf")]*len(obj_list)
+                                distance_done = True
+                                distance = False
+                                distance_results = [float("inf")]*len(obj_list)
                                 ob.select(True)
 
-                                shortest_path(ob, dfs_results, obj_list)
-                                
+                                compute_distance(ob, distance_results, obj_list)
+                                distance_popup.hide()
                                 break
                     else:
-                        if dfs_button.is_inside(event.pos):
-                            print("eseguo dfs - selezionare un punto da cui partire")
-                            dfs = True
+                        if distance_button.is_inside(event.pos):
+                            
+                            distance = True
+                            distance_popup.show()
                         else:
                             i = 0
                             if connecting:
@@ -110,7 +115,7 @@ while True:
                                         editing_information = (ob, x)
                                         current_value = str(ob.get_arc_weight(x))
                                         #print(current_value)
-                                        dfs_done = False
+                                        distance_done = False
                                         break
 
                                 
@@ -125,7 +130,7 @@ while True:
                             # o ne crea uno nuovo, se non ne trova uno corrispondente
                             obj_list[starting_index].edit_arc(obj_list[dragging_index],1, True)
                             #obj_list[dragging_index].edit_arc(obj_list[starting_index],1, False)
-                            dfs_done = False
+                            distance_done = False
                         connecting = False
 
 
@@ -140,18 +145,18 @@ while True:
 
                     if ob_todel != None:
                         obj_list.remove(ob_todel)
-                        dfs_done = False
+                        distance_done = False
                     else:
                         for ob in obj_list:
                             x = ob.get_selected_arc_destination(mouse_x, mouse_y)
                             if x != None:
                                 ob.remove_arc(x, True)
-                                dfs_done = False
+                                distance_done = False
                                 break
                     
                 elif event.button == 3:
                     # right click
-                    dfs_done = False
+                    distance_done = False
                     #drawing = True
                     mouse_x, mouse_y = event.pos
                     #starting_x = mouse_x
@@ -171,18 +176,7 @@ while True:
                         connecting = True
 
                     dragging = False
-                # elif event.button == 3:
-                #     drawing = False
-                #     if drawing_w < 0:
-                #         starting_x = starting_x + drawing_w
-                #         drawing_w = -drawing_w
-
-                #     if drawing_h < 0:
-                #         starting_y = starting_y + drawing_h
-                #         drawing_h = -drawing_h
-
-                #     x = Node(starting_x, starting_y, drawing_w, drawing_h)
-                #     obj_list.append(x)
+               
                 
             elif event.type == pygame.MOUSEMOTION:
                 if drawing:
@@ -234,12 +228,14 @@ while True:
         editing_information[0].edit_arc(editing_information[1], max(1, int(current_value)), True)
 
 
+    
+
     # sistema di rendering non efficente:
     #   1. viene iterata 2 volte la lista degli oggetti
     for ob in obj_list:
         ob.render_arcs(screen, pygame.mouse.get_pos())
-        if dfs_done:
-            if obj_list.index(ob) == dfs_results.index(0):
+        if distance_done:
+            if obj_list.index(ob) == distance_results.index(0):
                 ob.select(True)
             else:
                 ob.select(False)
@@ -248,15 +244,21 @@ while True:
     
     for ob in obj_list:
         ob.render(screen)
-        if dfs_done:
-            ob.render_text(screen, dfs_results[obj_list.index(ob)])
+        if distance_done:
+            ob.render_text(screen, distance_results[obj_list.index(ob)])
 
     
-    dfs_button.render(screen, pygame.mouse.get_pos(), dfs)
+    distance_button.render(screen, pygame.mouse.get_pos(), distance)
 
     if connecting:
         pygame.draw.line(screen, white, (starting_x, starting_y), pygame.mouse.get_pos())
 
+
+    # POPUP UPDATE
+    distance_popup.update()
+
+    # POPUP RENDER
+    distance_popup.render(screen)
 
     pygame.display.update()
     
