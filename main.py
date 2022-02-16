@@ -1,5 +1,4 @@
 # TODO
-# finish shortest path implementation (line 126)
 # mst button and implementation
 # zoom implementation
 # selection and multiple node dragging implementation
@@ -11,6 +10,44 @@ from pygame.locals import *
 from node import Node
 from button import Button
 from popup import Popup
+
+def mst(graph):    
+    v = len(graph)
+
+    selected = [False]*v
+
+    n_arcs = 0
+
+    selected[0] = True
+    
+    to_keep = []
+
+    while (n_arcs<v-1):
+        minimun = float("inf")
+        x=None
+        y=None
+        for i in range(v):
+            if selected[i]:
+                for arc in graph[i].arcs:
+                    n,w = arc[:2]
+                    if not selected[graph.index(n)]:
+                        if minimun > w:
+                            minimun = w
+                            x = graph[i]
+                            y = n
+        if y != None:
+            to_keep.append((x,y))
+            selected[graph.index(y)] = True
+        n_arcs+=1
+    
+        
+
+    for a in graph:
+        for b in graph:
+            if a != b:
+                if (a,b) not in to_keep and (b,a) not in to_keep:
+                    a.remove_arc(b,True)
+
 
 
 def find_path(starting_node, ending_node,graph):
@@ -60,8 +97,9 @@ obj_list = []
 path = []
 
 # BUTTONS
-distance_button = Button((10,490),100, 35, "Distance")
-shortest_path_button = Button((120, 490), 100, 35, "Shortest Path")
+distance_button = Button((10,490),150, 35, "Distance")
+shortest_path_button = Button((170, 490), 150, 35, "Shortest Path")
+mst_button = Button((330,490),150,35,"MST")
 
 distance_results = []
 distance_done = False
@@ -159,10 +197,14 @@ while True:
                             distance = True
                             distance_popup.show()
                         elif shortest_path_button.is_inside(event.pos):
-                            print("siufd")
                             shortest_path_start = True
                             shortest_path_end = False
+                            distance_done = False
                             shortest_path_start_popup.show()
+                        elif mst_button.is_inside(event.pos):
+                            shortest_path_done = False
+                            distance_done = False
+                            mst(obj_list)
                         else:
                             i = 0
                             if connecting:
@@ -348,6 +390,7 @@ while True:
     # BUTTON RENDER
     distance_button.render(screen, pygame.mouse.get_pos(), distance)
     shortest_path_button.render(screen, pygame.mouse.get_pos(), shortest_path_start^shortest_path_end)
+    mst_button.render(screen,pygame.mouse.get_pos(), False)
 
     if connecting:
         pygame.draw.line(screen, white, (starting_x, starting_y), pygame.mouse.get_pos())
