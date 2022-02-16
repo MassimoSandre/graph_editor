@@ -15,6 +15,8 @@ blue = 0,0,255
 
 screen = pygame.display.set_mode(size) # RESIZABLE
 
+pygame.display.set_caption('Graph editor')
+
 clock = pygame.time.Clock()
 
 obj_list = []
@@ -22,9 +24,9 @@ obj_list = []
 path = []
 
 # BUTTONS
-distance_button = Button((10,490),150, 35, "Distance")
-shortest_path_button = Button((170, 490), 150, 35, "Shortest Path")
-mst_button = Button((330,490),150,35,"MST")
+distance_button = Button((75,490),150, 35, "Distance")
+shortest_path_button = Button((235, 490), 150, 35, "Shortest Path")
+mst_button = Button((395,490),150,35,"MST")
 
 distance_results = []
 distance_done = False
@@ -264,6 +266,7 @@ while True:
                     
                     if dragging and not moved:
                         connecting = True
+                        selected = []
 
                     dragging = False
                     selecting = False
