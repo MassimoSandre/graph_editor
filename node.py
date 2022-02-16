@@ -8,6 +8,8 @@ class Node():
         self.radius = radius
         self.arc_radius = 12
         self.arcs = []
+        self.hl_arcs = []
+
         pygame.font.init()
         self.myfont = pygame.font.SysFont('Arial', 20)
         self.selected = False
@@ -84,6 +86,19 @@ class Node():
         return (self.pos_x, self.pos_y)
 
 
+    def highlight_arc(self, destination=None,callback=True):
+        if destination == None:
+            self.hl_arcs = []
+        else:
+            if callback:
+                destination.highlight_arc(self,False)
+
+            for a in self.arcs:
+                if a[0] == destination:
+                    self.hl_arcs.append(a)
+
+
+
     def render_arcs(self,screen, mouse_pos):
         for a in self.arcs:
             if a[2]:
@@ -95,7 +110,12 @@ class Node():
                 
                 d = math.sqrt((cx - mouse_pos[0])**2 + (cy - mouse_pos[1])**2)    
 
-                pygame.draw.line(screen, (255,255,255), (x1, y1), (x2,y2))
+                if a in self.hl_arcs:
+                    color = (255,0,0)
+                else:
+                    color = (255,255,255)
+
+                pygame.draw.line(screen, color, (x1, y1), (x2,y2))
 
                 if d < self.arc_radius:
                     pygame.draw.circle(screen, (255,255,255), (cx, cy),self.arc_radius, 0)

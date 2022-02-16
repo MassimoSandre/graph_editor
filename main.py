@@ -4,12 +4,30 @@
 # zoom implementation
 # selection and multiple node dragging implementation
 
+from re import L
 import pygame
 import random 
 from pygame.locals import *
 from node import Node
 from button import Button
 from popup import Popup
+
+
+def find_path(starting_node, ending_node,graph):
+    distances = [float("inf")]*len(obj_list)
+    compute_distance(starting_node, distances, graph)
+
+    p = [ending_node]
+    current_node = ending_node
+    while distances[graph.index(current_node)] > 0:
+        for arc in current_node.arcs:
+            n,w = arc[:2]
+            if distances[graph.index(n)] == distances[graph.index(current_node)] - w:
+                current_node = n
+                p.append(n)
+                break # i only consider ONE of the possible shortest paths
+    return p
+
 
 
 def compute_distance(starting_node, results, graph):
@@ -38,8 +56,8 @@ screen = pygame.display.set_mode(size) # RESIZABLE
 clock = pygame.time.Clock()
 
 obj_list = []
-#x = Node(1,2,20,50)
-#obj_list.append(x)
+
+path = []
 
 # BUTTONS
 distance_button = Button((10,490),100, 35, "Distance")
@@ -47,6 +65,8 @@ shortest_path_button = Button((120, 490), 100, 35, "Shortest Path")
 
 distance_results = []
 distance_done = False
+
+shortest_path_done = False
 
 drawing = False
 dragging = False
@@ -73,6 +93,8 @@ distance_popup = Popup("Select the starting node", DEFAULT_POPUP_RECT)
 
 shortest_path_start_popup = Popup("Select the starting node", DEFAULT_POPUP_RECT)
 shortest_path_end_popup = Popup("Select the ending node", DEFAULT_POPUP_RECT)
+
+editing_popup = Popup("Press enter to confirm", DEFAULT_POPUP_RECT)
 
 while True:
     screen.fill(black)
@@ -109,11 +131,11 @@ while True:
                                 if ob.is_inside(mouse_x, mouse_y):
                                     shortest_path_start = False
                                     shortest_path_end = True
-                                    selection = obj_list.index(ob)
+                                    selection = ob
                                     ob.select(True)
                                     shortest_path_start = False
                                     shortest_path_start_popup.hide()
-                                    shortest_path_end.show()
+                                    shortest_path_end_popup.show()
                                     break
 
                     elif shortest_path_end:
@@ -123,15 +145,21 @@ while True:
                         else:
                             for ob in obj_list:
                                 if ob.is_inside(mouse_x, mouse_y):
-                                    # TODO:
-                                    # computer distance and then compute the path between 'selection' and ob
-                                    # somehow highlight this path
-                                    pass
+                                    shortest_path_end = False
+                                
+                                    shortest_path_done = True
+
+                                    path = find_path(selection, ob, obj_list)
+
+                                    shortest_path_end_popup.hide()
                     else:
                         if distance_button.is_inside(event.pos):
+                            shortest_path_done = False
+
                             distance = True
                             distance_popup.show()
                         elif shortest_path_button.is_inside(event.pos):
+                            print("siufd")
                             shortest_path_start = True
                             shortest_path_end = False
                             shortest_path_start_popup.show()
@@ -161,10 +189,13 @@ while True:
                                     x = ob.get_selected_arc_destination(mouse_x, mouse_y)
                                     if x != None:
                                         editing = True
+                                        editing_popup.show()
+
                                         editing_information = (ob, x)
                                         current_value = str(ob.get_arc_weight(x))
                                         #print(current_value)
                                         distance_done = False
+                                        shortest_path_done = False
                                         break
 
                                 
@@ -180,6 +211,7 @@ while True:
                             obj_list[starting_index].edit_arc(obj_list[dragging_index],1, True)
                             #obj_list[dragging_index].edit_arc(obj_list[starting_index],1, False)
                             distance_done = False
+                            shortest_path_done = False
                         connecting = False
 
 
@@ -195,17 +227,20 @@ while True:
                     if ob_todel != None:
                         obj_list.remove(ob_todel)
                         distance_done = False
+                        shortest_path_done = False
                     else:
                         for ob in obj_list:
                             x = ob.get_selected_arc_destination(mouse_x, mouse_y)
                             if x != None:
                                 ob.remove_arc(x, True)
                                 distance_done = False
+                                shortest_path_done = False
                                 break
                     
                 elif event.button == 3:
                     # right click
                     distance_done = False
+                    shortest_path_done = False
                     #drawing = True
                     mouse_x, mouse_y = event.pos
                     #starting_x = mouse_x
@@ -246,8 +281,10 @@ while True:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     editing = False
+                    editing_popup.hide()
                 if event.key == pygame.K_RETURN:
                     editing = False
+                    editing_popup.hide()
                 if event.key == K_BACKSPACE:
                     current_value = current_value[0:-1]
                 if event.key == pygame.K_0:
@@ -277,7 +314,14 @@ while True:
         editing_information[0].edit_arc(editing_information[1], max(1, int(current_value)), True)
 
 
-    
+    for ob in obj_list:
+        ob.highlight_arc()
+
+    if shortest_path_done:
+        for i in range(len(path)-1):
+            path[i].highlight_arc(path[i+1])
+        
+
 
     # sistema di rendering non efficente:
     #   1. viene iterata 2 volte la lista degli oggetti
@@ -285,6 +329,11 @@ while True:
         ob.render_arcs(screen, pygame.mouse.get_pos())
         if distance_done:
             if obj_list.index(ob) == distance_results.index(0):
+                ob.select(True)
+            else:
+                ob.select(False)
+        elif shortest_path_done:
+            if ob in path:
                 ob.select(True)
             else:
                 ob.select(False)
@@ -308,11 +357,13 @@ while True:
     distance_popup.update()
     shortest_path_start_popup.update()
     shortest_path_end_popup.update()
+    editing_popup.update()
 
     # POPUP RENDER
     distance_popup.render(screen)
     shortest_path_start_popup.render(screen)
     shortest_path_end_popup.render(screen)
+    editing_popup.render(screen)
 
     pygame.display.update()
     
