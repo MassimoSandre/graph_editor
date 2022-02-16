@@ -85,6 +85,22 @@ class Node():
     def get_position(self):
         return (self.pos_x, self.pos_y)
 
+    def is_inside_selection(self, rect):
+        l = rect.x-self.radius
+        t = rect.y-self.radius
+        r = rect.x+rect.w+self.radius
+        b = rect.y+rect.h+self.radius
+
+        if l > r:
+            l,r = r,l
+        if t > b:
+            t,b = b,t
+
+        if self.pos_x < l or self.pos_x > r:
+            return False
+        if self.pos_y < t or self.pos_y > b:
+            return False
+        return True
 
     def highlight_arc(self, destination=None,callback=True):
         if destination == None:

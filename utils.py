@@ -38,7 +38,7 @@ def mst(graph):
 
 
 def find_path(starting_node, ending_node,graph):
-    distances = [float("inf")]*len(obj_list)
+    distances = [float("inf")]*len(graph)
     compute_distance(starting_node, distances, graph)
 
     p = [ending_node]

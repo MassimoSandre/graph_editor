@@ -1,7 +1,3 @@
-# TODO
-# zoom implementation
-# selection and multiple node dragging implementation
-
 import pygame
 from utils import *
 from pygame.locals import *
@@ -46,8 +42,11 @@ distance = False
 shortest_path_start = False
 shortest_path_end = False
 
-selection = None
+shortest_path_start_node = None
 
+selecting = False
+selecting_pos = None
+selected = []
 
 editing = False
 editing_information = (0,0)
@@ -70,7 +69,6 @@ while True:
         for event in pygame.event.get():
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1: 
-                    # left click
                     mouse_x, mouse_y = event.pos
                     
                     if distance:
@@ -98,7 +96,7 @@ while True:
                                 if ob.is_inside(mouse_x, mouse_y):
                                     shortest_path_start = False
                                     shortest_path_end = True
-                                    selection = ob
+                                    shortest_path_start_node = ob
                                     ob.select(True)
                                     shortest_path_start = False
                                     shortest_path_start_popup.hide()
@@ -116,21 +114,24 @@ while True:
                                 
                                     shortest_path_done = True
 
-                                    path = find_path(selection, ob, obj_list)
+                                    path = find_path(shortest_path_start_node, ob, obj_list)
 
                                     shortest_path_end_popup.hide()
                     else:
                         if distance_button.is_inside(event.pos):
+                            selected = []
                             shortest_path_done = False
 
                             distance = True
                             distance_popup.show()
                         elif shortest_path_button.is_inside(event.pos):
+                            selected = []
                             shortest_path_start = True
                             shortest_path_end = False
                             distance_done = False
                             shortest_path_start_popup.show()
                         elif mst_button.is_inside(event.pos):
+                            selected = []
                             shortest_path_done = False
                             distance_done = False
                             mst(obj_list)
@@ -159,6 +160,7 @@ while True:
                                 for ob in obj_list:
                                     x = ob.get_selected_arc_destination(mouse_x, mouse_y)
                                     if x != None:
+                                        selected = []
                                         editing = True
                                         editing_popup.show()
 
@@ -169,7 +171,14 @@ while True:
                                         shortest_path_done = False
                                         break
 
-                                
+                                if not editing:
+                                    selecting = True
+                                    distance_done = False
+                                    shortest_path_done = False
+
+                                    selecting_pos = event.pos
+                                    selected = []
+
                             
 
                     if connecting:
@@ -187,7 +196,8 @@ while True:
 
 
                 elif event.button == 2:
-                    # middle click
+                    selected = []
+                    
                     mouse_x, mouse_y = event.pos
                     ob_todel = None
                     for ob in obj_list:
@@ -209,7 +219,8 @@ while True:
                                 break
                     
                 elif event.button == 3:
-                    # right click
+                    selected = []
+
                     distance_done = False
                     shortest_path_done = False
                     #drawing = True
@@ -255,6 +266,7 @@ while True:
                         connecting = True
 
                     dragging = False
+                    selecting = False
                
                 
             elif event.type == pygame.MOUSEMOTION:
@@ -267,9 +279,22 @@ while True:
                     mouse_x, mouse_y = event.pos
                     vec_x = mouse_x - starting_x
                     vec_y = mouse_y - starting_y
-                    obj_list[dragging_index].translate(vec_x, vec_y)
+                    
+                    if obj_list[dragging_index] in selected:
+                        for n in selected:
+                            n.translate(vec_x, vec_y)
+                    else:
+                        selected = []
+                        obj_list[dragging_index].translate(vec_x, vec_y)
+
                     starting_x = mouse_x
                     starting_y = mouse_y
+                if selecting:
+                    selected = []
+                    for a in obj_list:
+                        if a.is_inside_selection(pygame.Rect(selecting_pos, (mouse_x-selecting_pos[0],mouse_y-selecting_pos[1]))):
+                            selected.append(a)
+                    
         
     else:
         for event in pygame.event.get():
@@ -317,9 +342,10 @@ while True:
             path[i].highlight_arc(path[i+1])
         
 
-
-    # sistema di rendering non efficente:
-    #   1. viene iterata 2 volte la lista degli oggetti
+    if selecting:
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+        pygame.draw.rect(screen, (200,200,200), pygame.Rect(selecting_pos, (mouse_x-selecting_pos[0],mouse_y-selecting_pos[1])),1)
+    
     for ob in obj_list:
         ob.render_arcs(screen, pygame.mouse.get_pos())
         if distance_done:
@@ -333,7 +359,10 @@ while True:
             else:
                 ob.select(False)
         else:
-            ob.select(False)
+            if ob in selected:
+                ob.select(True)
+            else:
+                ob.select(False)
     
     for ob in obj_list:
         ob.render(screen)
